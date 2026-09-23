@@ -11,31 +11,42 @@ export default function MatrixRain() {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    const c: CanvasRenderingContext2D = ctx;
 
-    let width = canvas.width = window.innerWidth;
-    let height = canvas.height = window.innerHeight;
+    const width0 = window.innerWidth;
+    const height0 = window.innerHeight;
+    canvas.width = width0;
+    canvas.height = height0;
+    let width = width0;
+    let height = height0;
 
     const fontSize = 28;
     const speed = 0.4;
     const columns = Math.floor(width / fontSize);
-    const drops = Array.from({ length: columns }, () => Math.random() * height / fontSize);
-    const chars = "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ@#$%^&*";
+    const drops = Array.from(
+      { length: columns },
+      () => (Math.random() * height) / fontSize,
+    );
+    const chars =
+      "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ@#$%^&*";
 
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const prefersDark = window.matchMedia(
+      "(prefers-color-scheme: dark)",
+    ).matches;
     const color = prefersDark ? "0, 255, 65" : "0, 100, 0";
     const opacity = prefersDark ? 0.04 : 0.03;
 
     function draw() {
-      ctx.fillStyle = `rgba(0, 0, 0, ${opacity})`;
-      ctx.fillRect(0, 0, width, height);
-      ctx.fillStyle = `rgba(${color}, 0.5)`;
-      ctx.font = `bold ${fontSize}px monospace`;
+      c.fillStyle = `rgba(0, 0, 0, ${opacity})`;
+      c.fillRect(0, 0, width, height);
+      c.fillStyle = `rgba(${color}, 0.5)`;
+      c.font = `bold ${fontSize}px monospace`;
 
       for (let i = 0; i < drops.length; i++) {
         const char = chars[Math.floor(Math.random() * chars.length)];
         const x = i * fontSize;
         const y = drops[i] * fontSize;
-        ctx.fillText(char, x, y);
+        c.fillText(char, x, y);
 
         if (y > height && Math.random() > 0.975) {
           drops[i] = 0;
@@ -49,8 +60,10 @@ export default function MatrixRain() {
     draw();
 
     const handleResize = () => {
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
     };
 
     window.addEventListener("resize", handleResize);
