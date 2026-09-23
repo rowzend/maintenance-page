@@ -4,13 +4,14 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_MAINTENANCE_TITLE: "Under Maintenance"
+        NEXT_PUBLIC_MAINTENANCE_TITLE: "Sedang Dalam Perbaikan"
         NEXT_PUBLIC_MAINTENANCE_SUBTITLE: "Kami sedang melakukan pemeliharaan sistem untuk meningkatkan layanan"
         NEXT_PUBLIC_MAINTENANCE_WHAT: "Sistem sedang dalam proses pembaruan untuk meningkatkan performa dan keamanan. Mohon bersabar menunggu hingga proses selesai."
         NEXT_PUBLIC_MAINTENANCE_WHEN: "Kami akan kembali online secepatnya. Silakan coba refresh halaman ini secara berkala."
-        # Optional: Uncomment and set when needed
-        # NEXT_PUBLIC_MAINTENANCE_ESTIMATED_TIME: "Estimasi selesai: Pukul 14:00 WIB"
-        # NEXT_PUBLIC_MAINTENANCE_CONTACT: "Untuk informasi lebih lanjut hubungi: it@bkpsdm.pesisirselatankab.go.id"
+        NEXT_PUBLIC_MAINTENANCE_ESTIMATED_TIME: "Estimasi selesai: 2 jam lagi"
+        NEXT_PUBLIC_MAINTENANCE_CONTACT: "Untuk informasi lebih lanjut hubungi: general.official32@gmail.com"
+        NEXT_PUBLIC_MAINTENANCE_END_TIME: "2026-09-23T10:48:00"
+        NEXT_PUBLIC_MAINTENANCE_EMAIL: "it@bkpsdm.pesisirselatankab.go.id"
     container_name: maintenance-app
     ports:
       - "3099:3000"
@@ -19,6 +20,12 @@ services:
     networks:
       - proxy-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://127.0.0.1:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
 networks:
   proxy-network:

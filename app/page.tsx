@@ -1,147 +1,206 @@
 "use client";
 
+import { useState, useEffect, useCallback } from "react";
+import MatrixRain from "./matrix-rain";
+
+const title = process.env.NEXT_PUBLIC_MAINTENANCE_TITLE || "Sedang Dalam Perbaikan";
+const subtitle = process.env.NEXT_PUBLIC_MAINTENANCE_SUBTITLE || "Kami sedang melakukan pemeliharaan sistem untuk meningkatkan layanan";
+const whatHappening = process.env.NEXT_PUBLIC_MAINTENANCE_WHAT || "Sistem sedang dalam proses pembaruan untuk meningkatkan performa dan keamanan.";
+const whenFinish = process.env.NEXT_PUBLIC_MAINTENANCE_WHEN || "Kami akan kembali online secepatnya.";
+const estimatedTime = process.env.NEXT_PUBLIC_MAINTENANCE_ESTIMATED_TIME;
+const contact = process.env.NEXT_PUBLIC_MAINTENANCE_CONTACT;
+const endTime = process.env.NEXT_PUBLIC_MAINTENANCE_END_TIME;
+const email = process.env.NEXT_PUBLIC_MAINTENANCE_EMAIL;
+
+function formatTimeLeft(targetDate: string) {
+  const now = Date.now();
+  const target = new Date(targetDate).getTime();
+  const diff = target - now;
+  if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0, expired: true };
+  return {
+    days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+    hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+    minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
+    seconds: Math.floor((diff % (1000 * 60)) / 1000),
+    expired: false,
+  };
+}
+
 export default function MaintenancePage() {
-  const title = process.env.NEXT_PUBLIC_MAINTENANCE_TITLE || "Sedang Dalam Perbaikan";
-  const subtitle = process.env.NEXT_PUBLIC_MAINTENANCE_SUBTITLE || "Kami sedang melakukan pemeliharaan sistem untuk meningkatkan layanan";
-  const whatHappening = process.env.NEXT_PUBLIC_MAINTENANCE_WHAT || "Sistem sedang dalam proses pembaruan untuk meningkatkan performa dan keamanan. Mohon bersabar menunggu hingga proses selesai.";
-  const whenFinish = process.env.NEXT_PUBLIC_MAINTENANCE_WHEN || "Kami akan kembali online secepatnya. Silakan coba refresh halaman ini secara berkala.";
-  const estimatedTime = process.env.NEXT_PUBLIC_MAINTENANCE_ESTIMATED_TIME;
+  const [timeLeft, setTimeLeft] = useState<ReturnType<typeof formatTimeLeft> | null>(null);
+  const [emailInput, setEmailInput] = useState("");
+  const [emailStatus, setEmailStatus] = useState<"idle" | "success" | "error">("idle");
+
+  useEffect(() => {
+    if (!endTime) return;
+    setTimeLeft(formatTimeLeft(endTime));
+    const interval = setInterval(() => {
+      setTimeLeft(formatTimeLeft(endTime));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [endTime]);
+
+  const estimatedFromEndTime = timeLeft && !timeLeft.expired
+    ? `Estimasi selesai: ${timeLeft.hours > 0 ? `${timeLeft.hours} jam ` : ""}${timeLeft.minutes} menit lagi`
+    : estimatedTime;
+
+  const handleEmailSubmit = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    if (!emailInput.trim()) return;
+    setEmailStatus("success");
+    setEmailInput("");
+    setTimeout(() => setEmailStatus("idle"), 3000);
+  }, [emailInput]);
+
+  const progressPercent = timeLeft && !timeLeft.expired
+    ? Math.max(0, Math.min(100, ((timeLeft.days * 86400 + timeLeft.hours * 3600 + timeLeft.minutes * 60 + timeLeft.seconds) / 7200) * 100))
+    : 100;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Animated Background Shapes */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-200/30 dark:bg-blue-500/10 rounded-full blur-3xl animate-float"></div>
-        <div className="absolute top-40 right-20 w-96 h-96 bg-purple-200/30 dark:bg-purple-500/10 rounded-full blur-3xl animate-float-delayed"></div>
-        <div className="absolute bottom-20 left-1/4 w-80 h-80 bg-pink-200/30 dark:bg-pink-500/10 rounded-full blur-3xl animate-float-slow"></div>
-        <div className="absolute bottom-40 right-1/3 w-64 h-64 bg-cyan-200/30 dark:bg-cyan-500/10 rounded-full blur-3xl animate-float-delayed-2"></div>
-      </div>
+    <div className="min-h-screen bg-[var(--background)] relative overflow-hidden">
+      <MatrixRain />
 
-      <div className="max-w-2xl w-full text-center space-y-8 animate-fadeIn relative z-10">
-        {/* Icon */}
-        <div className="flex justify-center animate-slideDown">
-          <div className="relative">
-            <div className="w-32 h-32 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center animate-pulse">
-              <svg
-                className="w-16 h-16 text-blue-600 dark:text-blue-400 animate-spin-slow"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                />
+      <div className="relative z-10 flex items-center justify-center min-h-screen p-3 sm:p-4">
+        <div className="w-full max-w-sm sm:max-w-md lg:max-w-xl mx-auto text-center space-y-5 sm:space-y-6 lg:space-y-7 animate-fadeIn">
+
+          <div className="flex justify-center animate-slideDown">
+            <div className="relative">
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-500 to-blue-300 opacity-5 blur-lg" />
+              <div className="w-24 h-24 sm:w-28 sm:h-28 backdrop-blur-md bg-white/5 dark:bg-white/5 rounded-2xl flex items-center justify-center border border-white/20 dark:border-white/10 relative">
+                <img src="/logo.png" alt="Logo" className="w-12 h-12 sm:w-14 sm:h-14 object-contain" />
+              </div>
+              <div className="absolute -inset-1 rounded-2xl border-2 border-blue-400/30 dark:border-blue-500/20 animate-pulse-ring" />
+              <div className="absolute -inset-[6px] rounded-2xl border border-blue-400/10 dark:border-blue-500/5" />
+            </div>
+          </div>
+
+          <div className="space-y-2 animate-slideUp" style={{ animationDelay: "0.1s" }}>
+            <span className="inline-flex items-center gap-2 px-4 py-1.5 backdrop-blur-md bg-white/5 dark:bg-white/5 border border-white/20 dark:border-white/10 rounded-full text-blue-600 dark:text-blue-400 text-sm font-semibold">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-            </div>
+              Sedang Maintenance
+            </span>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-[var(--text-primary)]">{title}</h1>
+            <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed px-2">{subtitle}</p>
           </div>
-        </div>
 
-        {/* Title */}
-        <div className="space-y-4 animate-slideUp" style={{ animationDelay: '0.1s' }}>
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white">
-            {title}
-          </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300">
-            {subtitle}
-          </p>
-        </div>
+          <div className="glass-card gradient-border rounded-2xl p-4 sm:p-5 lg:p-6 space-y-4 sm:space-y-5 lg:space-y-6 animate-slideUp" style={{ animationDelay: "0.2s" }}>
+            <div className="flex items-start space-x-3">
+              <div className="w-11 h-11 sm:w-12 sm:h-12 bg-white/5 dark:bg-white/5 backdrop-blur-md rounded-lg flex items-center justify-center flex-shrink-0 border border-white/10">
+                <svg className="w-6 h-6 sm:w-7 sm:h-7 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="text-left">
+                <h3 className="font-semibold text-[var(--text-primary)] mb-0.5 text-sm sm:text-base">Apa yang sedang terjadi?</h3>
+                <p className="text-[var(--text-secondary)] text-xs sm:text-sm leading-relaxed">{whatHappening}</p>
+              </div>
+            </div>
 
-        {/* Description */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 space-y-4 animate-slideUp hover:shadow-xl transition-shadow duration-300" style={{ animationDelay: '0.2s' }}>
-          <div className="flex items-start space-x-3">
-            <svg
-              className="w-6 h-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-1"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+            <div className="section-divider" />
+
+            <div className="flex items-start space-x-3">
+              <div className="w-11 h-11 sm:w-12 sm:h-12 bg-white/5 dark:bg-white/5 backdrop-blur-md rounded-lg flex items-center justify-center flex-shrink-0 border border-white/10">
+                <svg className="w-6 h-6 sm:w-7 sm:h-7 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="text-left">
+                <h3 className="font-semibold text-[var(--text-primary)] mb-0.5 text-sm sm:text-base">Kapan akan selesai?</h3>
+                <p className="text-[var(--text-secondary)] text-xs sm:text-sm leading-relaxed">{whenFinish}</p>
+                {estimatedFromEndTime && (
+                  <p className="text-xs sm:text-sm text-blue-400 dark:text-blue-300 mt-1 font-semibold">{estimatedFromEndTime}</p>
+                )}
+              </div>
+            </div>
+
+            {endTime && timeLeft && (
+              <div className="pt-2 animate-slideUp" style={{ animationDelay: "0.35s" }}>
+                <div className="flex justify-between text-xs mb-2">
+                  <span className="text-[var(--text-secondary)]">Progress</span>
+                  <span className="font-mono text-blue-400 text-xs">{timeLeft.expired ? "Selesai" : `${progressPercent.toFixed(1)}%`}</span>
+                </div>
+                <div className="w-full h-2 backdrop-blur-md bg-white/10 dark:bg-white/5 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-blue-500 rounded-full transition-all duration-1000 relative"
+                    style={{ width: `${progressPercent}%` }}
+                  >
+                    
+                  </div>
+                </div>
+                <div className="flex justify-center gap-2 sm:gap-3 mt-3">
+                  {timeLeft.days > 0 && (
+                    <div className="text-center flex-1">
+                      <div className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] stat-glow">{timeLeft.days}</div>
+                      <div className="text-xs text-[var(--text-secondary)]">Hari</div>
+                    </div>
+                  )}
+                  <div className="text-center flex-1">
+                    <div className="text-xl sm:text-2xl font-bold text-blue-400 stat-glow">{String(timeLeft.hours).padStart(2, "0")}</div>
+                    <div className="text-xs text-[var(--text-secondary)]">Jam</div>
+                  </div>
+                  <div className="text-center flex-1">
+                    <div className="text-xl sm:text-2xl font-bold text-blue-300 stat-glow">{String(timeLeft.minutes).padStart(2, "0")}</div>
+                    <div className="text-xs text-[var(--text-secondary)]">Menit</div>
+                  </div>
+                  <div className="text-center flex-1">
+                    <div className="text-xl sm:text-2xl font-bold text-sky-400 stat-glow">{String(timeLeft.seconds).padStart(2, "0")}</div>
+                    <div className="text-xs text-[var(--text-secondary)]">Detik</div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3 animate-slideUp" style={{ animationDelay: "0.35s" }}>
+            <button
+              onClick={() => window.location.reload()}
+              className="gradient-btn w-full text-white font-semibold py-3 px-4 rounded-xl text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg backdrop-blur-md"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 group-hover:rotate-180 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh Halaman
+            </button>
+
+            <form onSubmit={handleEmailSubmit} className="flex gap-2">
+              <input
+                type="email"
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                placeholder="Masukkan email Anda"
+                className="flex-1 px-3 py-2.5 backdrop-blur-md bg-white/5 dark:bg-white/5 border border-white/20 dark:border-white/10 rounded-xl text-[var(--text-primary)] dark:text-white placeholder:text-[var(--text-secondary)] text-xs sm:text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all"
               />
-            </svg>
-            <div className="text-left">
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
-                Apa yang sedang terjadi?
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                {whatHappening}
-              </p>
-            </div>
+              <button
+                type="submit"
+                disabled={!emailInput.trim()}
+                className="px-3 py-2.5 backdrop-blur-md bg-white/5 dark:bg-white/5 border border-white/20 dark:border-white/10 hover:bg-blue-500 hover:text-white hover:border-blue-400 text-[var(--text-primary)] dark:text-white text-xs sm:text-sm font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                Notifikasi
+              </button>
+            </form>
+
+            {emailStatus === "success" && (
+              <p className="text-emerald-400 text-xs sm:text-sm animate-fadeIn">✓ Notifikasi berhasil! Kami akan mengirim email saat sudah online.</p>
+            )}
+
+            {contact && (
+              <p className="text-xs sm:text-sm text-[var(--text-secondary)] px-2">{contact}</p>
+            )}
           </div>
 
-          <div className="flex items-start space-x-3">
-            <svg
-              className="w-6 h-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-1"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <div className="text-left">
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
-                Kapan akan selesai?
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                {whenFinish}
-              </p>
-              {estimatedTime && (
-                <p className="text-sm text-blue-600 dark:text-blue-400 mt-2 font-semibold">
-                  {estimatedTime}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Action */}
-        <div className="space-y-4 animate-slideUp" style={{ animationDelay: '0.3s' }}>
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-semibold px-8 py-3 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
-          >
-            Refresh Halaman
-          </button>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Terima kasih atas kesabaran Anda
-          </p>
-          {process.env.NEXT_PUBLIC_MAINTENANCE_CONTACT && (
-            <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
-              {process.env.NEXT_PUBLIC_MAINTENANCE_CONTACT}
+          <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
+            <div className="section-divider mb-3" />
+            <p className="text-center text-[10px] sm:text-xs text-[var(--text-secondary)]">
+              <a href="https://it.bkpsdm.pesisirselatankab.go.id" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400 dark:hover:text-blue-300 transition-colors font-medium">
+                IT BKPSDM Kabupaten Pesisir Selatan
+              </a>
             </p>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="pt-8 border-t border-gray-200 dark:border-gray-700 animate-slideUp" style={{ animationDelay: '0.4s' }}>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            © {new Date().getFullYear()}{" "}
-            <a
-              href="https://it.bkpsdm.pesisirselatankab.go.id"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 hover:underline"
-            >
-              IT BKPSDM Kabupaten Pesisir Selatan
-            </a>
-          </p>
+            <p className="text-center text-[10px] sm:text-xs text-[var(--text-secondary)] mt-1">
+              © {new Date().getFullYear()}
+            </p>
+          </div>
         </div>
       </div>
     </div>
