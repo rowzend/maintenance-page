@@ -49,39 +49,93 @@ docker compose up -d --build
 
 Build akan memakan waktu sekitar 30-60 detik.
 
+## CI/CD Pipeline
+
+Full CI/CD using GitHub Actions. No source code on VPS.
+
+```
+GitHub Push → GitHub Actions (Build) → ghcr.io → SSH → VPS (Pull & Deploy)
+```
+
+### How It Works
+
+1. Push to `main` branch triggers GitHub Actions
+2. Builds Docker image and pushes to `ghcr.io/rowzend/maintenance-page`
+3. SSHs into VPS (`vps-dev`, 103.143.152.139) and deploys
+4. VPS pulls latest image and restarts container
+
+### GitHub Secrets Required
+
+| Secret | Value |
+|--------|-------|
+| `VPS_HOST` | `103.143.152.139` |
+| `VPS_USER` | `dev` |
+| `VPS_SSH_KEY` | SSH private key for vps-dev |
+| `MAINTENANCE_TITLE` | Page title |
+| `MAINTENANCE_SUBTITLE` | Subtitle text |
+| `MAINTENANCE_WHAT` | What's happening |
+| `MAINTENANCE_WHEN` | When finished |
+| `MAINTENANCE_ESTIMATED_TIME` | Estimated time (optional) |
+| `MAINTENANCE_CONTACT` | Contact info (optional) |
+
+### Trigger Deployment
+
+```bash
+git push origin main
+```
+
+Or manually via GitHub Actions tab → Run workflow.
+
+### Check Deployment Status
+
+```bash
+ssh vps-dev "docker compose -C /home/dev/maintenance-page ps"
+ssh vps-dev "docker compose -C /home/dev/maintenance-page logs"
+```
+
+### Update Maintenance Messages
+
+1. Edit `.env.example`
+2. Update GitHub secrets (`gh secret set ...`)
+3. Push to `main` branch
+4. Pipeline rebuilds and deploys automatically
+
 ## Development
 
 ```bash
-# Install dependencies
 npm install
-
-# Run development server
 npm run dev
-
-# Build for production
 npm run build
-
-# Start production server
 npm start
 ```
 
 ## Docker
 
 ```bash
-# Build and run
-docker-compose up -d --build
-
-# View logs
-docker-compose logs -f
-
-# Stop
-docker-compose down
+docker compose up -d --build
+docker compose logs -f
+docker compose down
 ```
 
 ## Port
 
 - Development: http://localhost:3000
 - Production (Docker): http://localhost:3099
+
+## Files Structure
+
+```
+├── .github/workflows/deploy.yml  # CI/CD pipeline
+├── deploy/
+│   ├── docker-compose.vps.yml    # VPS compose reference
+│   └── deploy.sh                 # Manual deploy script
+├── Dockerfile                    # Multi-stage build
+├── docker-compose.yml            # Local development
+├── app/                          # Next.js app
+├── public/                       # Static assets
+├── .env.example                  # Environment variables
+└── DEPLOYMENT.md                 # Full deployment guide
+```
 
 ## Contoh Penggunaan
 
