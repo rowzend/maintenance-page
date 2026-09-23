@@ -1,0 +1,82 @@
+name: Build and Deploy Maintenance Page
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: maintenance-page
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_MAINTENANCE_TITLE=${{ secrets.MAINTENANCE_TITLE }}
+            NEXT_PUBLIC_MAINTENANCE_SUBTITLE=${{ secrets.MAINTENANCE_SUBTITLE }}
+            NEXT_PUBLIC_MAINTENANCE_WHAT=${{ secrets.MAINTENANCE_WHAT }}
+            NEXT_PUBLIC_MAINTENANCE_WHEN=${{ secrets.MAINTENANCE_WHEN }}
+            NEXT_PUBLIC_MAINTENANCE_ESTIMATED_TIME=${{ secrets.MAINTENANCE_ESTIMATED_TIME }}
+            NEXT_PUBLIC_MAINTENANCE_CONTACT=${{ secrets.MAINTENANCE_CONTACT }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            mkdir -p /home/dev/maintenance-page
+            cd /home/dev/maintenance-page
+
+            printf '%s\n' 'services:' '  maintenance-app:' '    image: ghcr.io/rowzend/maintenance-page:latest' '    container_name: maintenance-app' '    ports:' '      - "3099:3000"' '    environment:' '      - NODE_ENV=production' '    networks:' '      - proxy-network' '    restart: unless-stopped' '' 'networks:' '  proxy-network:' '    external: true' > docker-compose.yml
+
+            docker compose pull
+            docker compose up -d --remove-orphans
+            echo "Deployment completed at $(date)"
+
+      - name: Verify deployment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /home/dev/maintenance-page && docker compose ps
+            echo "Container status verified at $(date)"

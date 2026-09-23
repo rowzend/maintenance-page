@@ -1,0 +1,15 @@
+services:
+  maintenance-app:
+    image: ghcr.io/rowzend/maintenance-page:latest
+    container_name: maintenance-app
+    ports:
+      - "3099:3000"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - proxy-network
+    restart: unless-stopped
+
+networks:
+  proxy-network:
+    external: true

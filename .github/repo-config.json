@@ -1,0 +1,8 @@
+{
+  "name": "maintenance-page",
+  "description": "Halaman maintenance untuk BKPSDM Pesisir Selatan",
+  "private": true,
+  "template": null,
+  "auto_init": true,
+  "gitignore_template": "Node"
+}
