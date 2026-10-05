@@ -65,7 +65,29 @@ jobs:
             mkdir -p /home/dev/maintenance-page
             cd /home/dev/maintenance-page
 
-            printf '%s\n' 'services:' '  maintenance-app:' '    image: ghcr.io/rowzend/maintenance-page:latest' '    container_name: maintenance-app' '    ports:' '      - "3099:3000"' '    environment:' '      - NODE_ENV=production' '    networks:' '      - proxy-network' '    restart: unless-stopped' '' 'networks:' '  proxy-network:' '    external: true' > docker-compose.yml
+            cat > docker-compose.yml <<'EOF'
+            services:
+              maintenance-app:
+                image: ghcr.io/rowzend/maintenance-page:latest
+                container_name: maintenance-app
+                ports:
+                  - "3099:3000"
+                environment:
+                  - NODE_ENV=production
+                networks:
+                  - proxy-network
+                restart: unless-stopped
+                healthcheck:
+                  test: ["CMD", "wget", "--spider", "http://127.0.0.1:3000"]
+                  interval: 30s
+                  timeout: 10s
+                  retries: 3
+                  start_period: 10s
+
+            networks:
+              proxy-network:
+                external: true
+            EOF
 
             docker compose pull
             docker compose up -d --remove-orphans
